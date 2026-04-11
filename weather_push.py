@@ -71,6 +71,9 @@ def push_to_device(text, page_id):
         print("错误: 设备ID未设置")
         return
     
+    print(f"准备推送的文本内容:\n{text}")
+    print(f"文本长度: {len(text)} 字符")
+    
     url = f"https://cloud.zectrix.com/open/v1/devices/{DEVICE_ID}/display/text"
     headers = {
         "X-API-Key": ZECTRIX_API_KEY,
@@ -82,6 +85,9 @@ def push_to_device(text, page_id):
         "pageId": page_id
     }
     print(f"推送页面 {page_id} 到设备 {DEVICE_ID}")
+    print(f"请求URL: {url}")
+    print(f"请求头: {headers}")
+    print(f"请求体: {payload}")
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         print(f"推送响应: {response.status_code} - {response.text}")
