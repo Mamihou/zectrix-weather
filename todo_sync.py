@@ -2,6 +2,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 import os
 import json
+import time
 
 # 配置
 ZECTRIX_API_KEY = "zt_e78f09c7753b6fecb84ceadbcceef149"
@@ -15,21 +16,41 @@ def get_todoist_todos():
         print("错误: Todoist API Token未设置")
         return []
     
-    url = "https://api.todoist.com/api/v1/tasks"
+    url = "https://api.todoist.com/sync/v9/sync"
     headers = {
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    payload = {
+        "sync_token": "*",
+        "resource_types": '["items"]'
     }
     print("请求Todoist API获取待办事项")
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
         print(f"Todoist API响应状态码: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            if isinstance(data, list):
-                return data
+            print(f"Todoist API响应数据: {data}")
+            if isinstance(data, dict):
+                items = data.get("items", [])
+                if isinstance(items, list):
+                    # 转换为我们需要的格式
+                    tasks = []
+                    for item in items:
+                        task = {
+                            "id": item.get("id"),
+                            "content": item.get("content"),
+                            "completed": item.get("completed", False),
+                            "priority": item.get("priority", 1)
+                        }
+                        tasks.append(task)
+                    return tasks
+                else:
+                    print(f"Todoist API响应格式错误: items不是列表，实际是 {type(items)}")
+                    return []
             else:
-                print(f"Todoist API响应格式错误: 预期列表，实际是 {type(data)}")
+                print(f"Todoist API响应格式错误: 预期字典，实际是 {type(data)}")
                 return []
         else:
             print(f"Todoist API错误: {response.text}")
@@ -133,19 +154,31 @@ def update_todoist_task(task_id, completed):
         print("错误: Todoist API Token未设置")
         return False
     
-    url = f"https://api.todoist.com/api/v1/tasks/{task_id}"
+    url = "https://api.todoist.com/sync/v9/sync"
     headers = {
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/x-www-form-urlencoded"
     }
+    commands = [
+        {
+            "type": "item_update",
+            "uuid": f"update_{task_id}_{int(time.time())}",
+            "args": {
+                "id": task_id,
+                "completed": completed
+            }
+        }
+    ]
     payload = {
-        "completed": completed
+        "sync_token": "*",
+        "resource_types": '["items"]',
+        "commands": json.dumps(commands)
     }
     print(f"更新Todoist任务状态: {task_id}")
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response = requests.post(url, headers=headers, data=payload, timeout=10)
         print(f"更新Todoist响应: {response.status_code} - {response.text}")
-        return response.status_code == 204
+        return response.status_code == 200
     except Exception as e:
         print(f"更新Todoist异常: {str(e)}")
         return False
