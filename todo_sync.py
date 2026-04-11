@@ -175,70 +175,7 @@ def sync_zectrix_to_todoist():
             if existing_task["completed"] != completed:
                 update_todoist_task(task_id, completed)
 
-def push_todos_to_device():
-    """推送待办事项到设备显示"""
-    todos = get_zectrix_todos()
-    
-    # 获取中国时区（UTC+8）的当前时间
-    china_tz = timezone(timedelta(hours=8))
-    current_time = datetime.now(china_tz).strftime("%Y-%m-%d %H:%M")
-    
-    # 构建待办事项的文本
-    todo_text = f"上一次同步时间: {current_time}\n{'=' * 61}\n　　　　　　　　　待办事项\n\n"
-    
-    # 过滤未完成的任务并按优先级排序
-    active_todos = [t for t in todos if not t.get('completed', False)]
-    # 按优先级排序（priority: 1=低, 2=中, 3=高, 4=最高）
-    active_todos.sort(key=lambda x: x.get('priority', 1), reverse=True)
-    
-    if active_todos:
-        for i, todo in enumerate(active_todos[:10]):  # 只显示前10个
-            content = todo.get('content', '无内容')
-            priority = todo.get('priority', 1)
-            status = "✓" if todo.get('completed', False) else "□"
-            
-            # 优先级标记
-            priority_marks = {
-                1: "  ",  # 低优先级
-                2: "! ",  # 中优先级
-                3: "!!",  # 高优先级
-                4: "!!!"  # 最高优先级
-            }
-            priority_mark = priority_marks.get(priority, "  ")
-            
-            todo_text += f"{i+1:>2}. {status} {priority_mark} {content}\n"
-    else:
-        todo_text += "当前没有待办事项\n"
-    
-    # 推送到第2页
-    push_to_device(todo_text, "2")
-    
-    return {"code": 0, "message": "成功推送待办事项到第2页"}
 
-def push_to_device(text, page_id):
-    """推送内容到设备的指定页面"""
-    if not DEVICE_ID:
-        print("错误: 设备ID未设置")
-        return
-    
-    url = f"https://cloud.zectrix.com/open/v1/devices/{DEVICE_ID}/display/text"
-    headers = {
-        "X-API-Key": ZECTRIX_API_KEY,
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "text": text,
-        "fontSize": 11,
-        "pageId": page_id
-    }
-    print(f"推送页面 {page_id} 到设备 {DEVICE_ID}")
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
-        print(f"推送响应: {response.status_code} - {response.text}")
-        return response.json()
-    except Exception as e:
-        print(f"推送异常: {str(e)}")
-        return {"code": 500, "message": str(e)}
 
 if __name__ == "__main__":
     print(f"设备ID: {DEVICE_ID}")
@@ -250,9 +187,4 @@ if __name__ == "__main__":
     print("2. 同步设备到Todoist")
     sync_zectrix_to_todoist()
     
-    # 推送待办事项到设备显示
-    print("\n=== 推送待办事项到设备显示 ===")
-    todo_result = push_todos_to_device()
-    print("待办事项推送结果:", todo_result)
-    
-    print("\n总推送结果:", {"todo": todo_result})
+    print("\n总同步结果: 成功完成双向同步")
