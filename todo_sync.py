@@ -15,7 +15,7 @@ def get_todoist_todos():
         print("错误: Todoist API Token未设置")
         return []
     
-    url = "https://api.todoist.com/rest/v2/tasks"
+    url = "https://api.todoist.com/rest/v1/tasks"
     headers = {
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
         "Content-Type": "application/json"
@@ -50,7 +50,11 @@ def get_zectrix_todos():
         print(f"Zectrix API响应状态码: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            return data.get("data", [])
+            if data and isinstance(data, dict):
+                return data.get("data", [])
+            else:
+                print("Zectrix API响应格式错误")
+                return []
         else:
             print(f"Zectrix API错误: {response.text}")
             return []
@@ -115,7 +119,7 @@ def update_todoist_task(task_id, completed):
         print("错误: Todoist API Token未设置")
         return False
     
-    url = f"https://api.todoist.com/rest/v2/tasks/{task_id}"
+    url = f"https://api.todoist.com/rest/v1/tasks/{task_id}"
     headers = {
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
         "Content-Type": "application/json"
