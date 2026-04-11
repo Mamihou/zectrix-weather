@@ -65,48 +65,59 @@ def get_zectrix_todos():
         print("错误: 设备ID未设置")
         return []
     
-    # 尝试不同的API端点
-    endpoints = [
-        f"https://cloud.zectrix.com/open/v1/devices/{DEVICE_ID}/todos",
-        f"https://cloud.zectrix.com/api/v1/devices/{DEVICE_ID}/todos",
-        f"https://api.zectrix.com/open/v1/devices/{DEVICE_ID}/todos",
-        f"https://api.zectrix.com/v1/devices/{DEVICE_ID}/todos"
-    ]
-    
-    for url in endpoints:
-        headers = {
-            "X-API-Key": ZECTRIX_API_KEY,
-            "Content-Type": "application/json"
-        }
-        print(f"请求Zectrix API获取待办事项，端点: {url}")
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            print(f"Zectrix API响应状态码: {response.status_code}")
-            if response.status_code == 200:
+    # 使用正确的API端点
+    url = f"https://cloud.zectrix.com/open/v1/todos"
+    headers = {
+        "X-API-Key": ZECTRIX_API_KEY,
+        "Content-Type": "application/json"
+    }
+    params = {
+        "deviceId": DEVICE_ID
+    }
+    print(f"请求Zectrix API获取待办事项，端点: {url}")
+    print(f"参数: {params}")
+    print(f"API Key: {ZECTRIX_API_KEY}")
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        print(f"Zectrix API响应状态码: {response.status_code}")
+        print(f"Zectrix API响应内容: {response.text}")
+        if response.status_code == 200:
+            try:
                 data = response.json()
                 print(f"Zectrix API响应数据: {data}")
                 if data and isinstance(data, dict):
-                    todos = data.get("data", [])
-                    if isinstance(todos, list):
-                        return todos
+                    if data.get("code") == 0:
+                        todos = data.get("data", [])
+                        if isinstance(todos, list):
+                            # 转换为我们需要的格式
+                            converted_todos = []
+                            for todo in todos:
+                                converted_todo = {
+                                    "id": todo.get("id"),
+                                    "content": todo.get("title"),
+                                    "completed": todo.get("completed", False),
+                                    "priority": todo.get("priority", 1)
+                                }
+                                converted_todos.append(converted_todo)
+                            return converted_todos
+                        else:
+                            print(f"Zectrix API响应格式错误: data不是列表，实际是 {type(todos)}")
+                            return []
                     else:
-                        print(f"Zectrix API响应格式错误: data不是列表，实际是 {type(todos)}")
-                        continue
-                elif isinstance(data, list):
-                    # 直接返回列表
-                    return data
+                        print(f"Zectrix API错误: {data.get('msg', '未知错误')}")
+                        return []
                 else:
-                    print(f"Zectrix API响应格式错误: 预期字典或列表，实际是 {type(data)}")
-                    continue
-            else:
-                print(f"Zectrix API错误: {response.text}")
-                continue
-        except Exception as e:
-            print(f"Zectrix API请求异常: {str(e)}")
-            continue
-    
-    print("所有Zectrix API端点都失败了")
-    return []
+                    print(f"Zectrix API响应格式错误: 预期字典，实际是 {type(data)}")
+                    return []
+            except json.JSONDecodeError as e:
+                print(f"Zectrix API响应解析错误: {str(e)}")
+                return []
+        else:
+            print(f"Zectrix API错误: {response.text}")
+            return []
+    except Exception as e:
+        print(f"Zectrix API请求异常: {str(e)}")
+        return []
 
 def create_zectrix_todo(content, completed=False, priority=1):
     """在设备上创建待办事项"""
@@ -114,37 +125,39 @@ def create_zectrix_todo(content, completed=False, priority=1):
         print("错误: 设备ID未设置")
         return False
     
-    # 尝试不同的API端点
-    endpoints = [
-        f"https://cloud.zectrix.com/open/v1/devices/{DEVICE_ID}/todos",
-        f"https://cloud.zectrix.com/api/v1/devices/{DEVICE_ID}/todos",
-        f"https://api.zectrix.com/open/v1/devices/{DEVICE_ID}/todos",
-        f"https://api.zectrix.com/v1/devices/{DEVICE_ID}/todos"
-    ]
-    
+    # 使用正确的API端点
+    url = f"https://cloud.zectrix.com/open/v1/todos"
+    headers = {
+        "X-API-Key": ZECTRIX_API_KEY,
+        "Content-Type": "application/json"
+    }
     payload = {
-        "content": content,
-        "completed": completed,
-        "priority": priority
+        "title": content,
+        "priority": priority,
+        "deviceId": DEVICE_ID
     }
     print(f"在设备上创建待办事项: {content}")
-    
-    for url in endpoints:
-        headers = {
-            "X-API-Key": ZECTRIX_API_KEY,
-            "Content-Type": "application/json"
-        }
-        try:
-            response = requests.post(url, headers=headers, json=payload, timeout=10)
-            print(f"创建待办响应 (端点: {url}): {response.status_code} - {response.text}")
-            if response.status_code == 200:
-                return True
-        except Exception as e:
-            print(f"创建待办异常 (端点: {url}): {str(e)}")
-            continue
-    
-    print("所有Zectrix API端点都失败了")
-    return False
+    print(f"API Key: {ZECTRIX_API_KEY}")
+    print(f"请求体: {payload}")
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        print(f"创建待办响应: {response.status_code} - {response.text}")
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                if data and isinstance(data, dict):
+                    if data.get("code") == 0:
+                        return True
+                    else:
+                        print(f"Zectrix API错误: {data.get('msg', '未知错误')}")
+                        return False
+            except json.JSONDecodeError as e:
+                print(f"Zectrix API响应解析错误: {str(e)}")
+                return False
+        return False
+    except Exception as e:
+        print(f"创建待办异常: {str(e)}")
+        return False
 
 def update_zectrix_todo(todo_id, completed=None, priority=None):
     """更新设备上的待办事项"""
@@ -152,37 +165,66 @@ def update_zectrix_todo(todo_id, completed=None, priority=None):
         print("错误: 设备ID未设置")
         return False
     
-    # 尝试不同的API端点
-    endpoints = [
-        f"https://cloud.zectrix.com/open/v1/devices/{DEVICE_ID}/todos/{todo_id}",
-        f"https://cloud.zectrix.com/api/v1/devices/{DEVICE_ID}/todos/{todo_id}",
-        f"https://api.zectrix.com/open/v1/devices/{DEVICE_ID}/todos/{todo_id}",
-        f"https://api.zectrix.com/v1/devices/{DEVICE_ID}/todos/{todo_id}"
-    ]
-    
-    payload = {}
+    # 使用正确的API端点
     if completed is not None:
-        payload["completed"] = completed
-    if priority is not None:
-        payload["priority"] = priority
-    
-    print(f"更新设备上的待办事项: {todo_id}")
-    
-    for url in endpoints:
+        # 标记完成/取消完成
+        url = f"https://cloud.zectrix.com/open/v1/todos/{todo_id}/complete"
         headers = {
             "X-API-Key": ZECTRIX_API_KEY,
             "Content-Type": "application/json"
         }
+        print(f"更新设备上的待办事项状态: {todo_id}, 完成状态: {completed}")
+        print(f"API Key: {ZECTRIX_API_KEY}")
+        try:
+            response = requests.put(url, headers=headers, timeout=10)
+            print(f"更新待办响应: {response.status_code} - {response.text}")
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if data and isinstance(data, dict):
+                        if data.get("code") == 0:
+                            return True
+                        else:
+                            print(f"Zectrix API错误: {data.get('msg', '未知错误')}")
+                            return False
+                except json.JSONDecodeError as e:
+                    print(f"Zectrix API响应解析错误: {str(e)}")
+                    return False
+            return False
+        except Exception as e:
+            print(f"更新待办异常: {str(e)}")
+            return False
+    elif priority is not None:
+        # 更新优先级
+        url = f"https://cloud.zectrix.com/open/v1/todos/{todo_id}"
+        headers = {
+            "X-API-Key": ZECTRIX_API_KEY,
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "priority": priority
+        }
+        print(f"更新设备上的待办事项优先级: {todo_id}, 优先级: {priority}")
+        print(f"API Key: {ZECTRIX_API_KEY}")
         try:
             response = requests.put(url, headers=headers, json=payload, timeout=10)
-            print(f"更新待办响应 (端点: {url}): {response.status_code} - {response.text}")
+            print(f"更新待办响应: {response.status_code} - {response.text}")
             if response.status_code == 200:
-                return True
+                try:
+                    data = response.json()
+                    if data and isinstance(data, dict):
+                        if data.get("code") == 0:
+                            return True
+                        else:
+                            print(f"Zectrix API错误: {data.get('msg', '未知错误')}")
+                            return False
+                except json.JSONDecodeError as e:
+                    print(f"Zectrix API响应解析错误: {str(e)}")
+                    return False
+            return False
         except Exception as e:
-            print(f"更新待办异常 (端点: {url}): {str(e)}")
-            continue
-    
-    print("所有Zectrix API端点都失败了")
+            print(f"更新待办异常: {str(e)}")
+            return False
     return False
 
 def update_todoist_task(task_id, completed):
