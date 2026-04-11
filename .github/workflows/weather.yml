@@ -21,4 +21,7 @@ jobs:
       - name: 推送7天天气
         env:
           DEVICE_ID: ${{ secrets.DEVICE_ID }}
+          QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
+          QWEATHER_API_HOST: ${{ secrets.QWEATHER_API_HOST }}
+          ZECTRIX_API_KEY: ${{ secrets.ZECTRIX_API_KEY }}
         run: python weather_push.py
