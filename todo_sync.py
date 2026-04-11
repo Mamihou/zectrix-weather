@@ -16,7 +16,7 @@ def get_todoist_todos():
         print("错误: Todoist API Token未设置")
         return []
     
-    url = "https://api.todoist.com/sync/v9/sync"
+    url = "https://api.todoist.com/api/v1/sync"
     headers = {
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
         "Content-Type": "application/x-www-form-urlencoded"
@@ -154,7 +154,7 @@ def update_todoist_task(task_id, completed):
         print("错误: Todoist API Token未设置")
         return False
     
-    url = "https://api.todoist.com/sync/v9/sync"
+    url = "https://api.todoist.com/api/v1/sync"
     headers = {
         "Authorization": f"Bearer {TODOIST_API_TOKEN}",
         "Content-Type": "application/x-www-form-urlencoded"
