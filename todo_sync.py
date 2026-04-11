@@ -12,58 +12,6 @@ TODOIST_API_TOKEN = os.environ.get("TODOIST_API_TOKEN")
 
 print(f"设备ID: {DEVICE_ID}")
 
-def push_todos_to_display(todos):
-    """推送待办事项到设备显示"""
-    if not DEVICE_ID:
-        print("错误: 设备ID未设置")
-        return False
-    
-    # 构建待办事项文本
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    todo_text = f"待办事项 - 上次更新: {current_time}\n{'=' * 61}\n"
-    
-    if not todos:
-        todo_text += "当前没有待办事项\n"
-    else:
-        for i, todo in enumerate(todos, 1):
-            status = "✓" if todo.get("completed", False) else "□"
-            content = todo.get("content", "")
-            todo_text += f"{i}. {status} {content}\n"
-    
-    # 使用正确的API端点推送文本
-    url = f"https://cloud.zectrix.com/open/v1/devices/{DEVICE_ID}/display/text"
-    headers = {
-        "X-API-Key": ZECTRIX_API_KEY,
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "text": todo_text,
-        "fontSize": 20,
-        "pageId": "2"  # 使用第2页显示待办事项
-    }
-    
-    print("推送待办事项到设备显示")
-    print(f"API Key: {ZECTRIX_API_KEY}")
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
-        print(f"推送显示响应: {response.status_code} - {response.text}")
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                if data and isinstance(data, dict):
-                    if data.get("code") == 0:
-                        return True
-                    else:
-                        print(f"Zectrix API错误: {data.get('msg', '未知错误')}")
-                        return False
-            except json.JSONDecodeError as e:
-                print(f"Zectrix API响应解析错误: {str(e)}")
-                return False
-        return False
-    except Exception as e:
-        print(f"推送显示异常: {str(e)}")
-        return False
-
 def get_todoist_todos():
     """从Todoist获取待办事项"""
     if not TODOIST_API_TOKEN:
@@ -370,10 +318,5 @@ if __name__ == "__main__":
     sync_todoist_to_zectrix()
     print("2. 同步设备到Todoist")
     sync_zectrix_to_todoist()
-    
-    # 获取最新的待办事项并推送到设备显示
-    print("3. 推送待办事项到设备显示")
-    zectrix_todos = get_zectrix_todos()
-    push_todos_to_display(zectrix_todos)
     
     print("\n总同步结果: 成功完成双向同步")
