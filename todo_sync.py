@@ -5,7 +5,7 @@ import json
 import time
 
 # 配置
-ZECTRIX_API_KEY = "zt_e78f09c7753b6fecb84ceadbcceef149"
+ZECTRIX_API_KEY = "zt_deac31c692f6ff11b240a65a83aeab4c"
 DEVICE_ID = os.environ.get("DEVICE_ID")
 # Todoist API配置
 TODOIST_API_TOKEN = os.environ.get("TODOIST_API_TOKEN")
