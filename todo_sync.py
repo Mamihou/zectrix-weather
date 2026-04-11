@@ -25,7 +25,12 @@ def get_todoist_todos():
         response = requests.get(url, headers=headers, timeout=10)
         print(f"Todoist API响应状态码: {response.status_code}")
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            if isinstance(data, list):
+                return data
+            else:
+                print(f"Todoist API响应格式错误: 预期列表，实际是 {type(data)}")
+                return []
         else:
             print(f"Todoist API错误: {response.text}")
             return []
@@ -50,15 +55,19 @@ def get_zectrix_todos():
         print(f"Zectrix API响应状态码: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
+            print(f"Zectrix API响应数据: {data}")
             if data and isinstance(data, dict):
                 todos = data.get("data", [])
                 if isinstance(todos, list):
                     return todos
                 else:
-                    print("Zectrix API响应格式错误: data不是列表")
+                    print(f"Zectrix API响应格式错误: data不是列表，实际是 {type(todos)}")
                     return []
+            elif isinstance(data, list):
+                # 直接返回列表
+                return data
             else:
-                print("Zectrix API响应格式错误")
+                print(f"Zectrix API响应格式错误: 预期字典或列表，实际是 {type(data)}")
                 return []
         else:
             print(f"Zectrix API错误: {response.text}")
