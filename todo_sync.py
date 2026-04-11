@@ -293,19 +293,30 @@ def sync_zectrix_to_todoist():
     zectrix_todos = get_zectrix_todos()
     todoist_todos = get_todoist_todos()
     
+    print(f"设备待办事项: {zectrix_todos}")
+    print(f"Todoist待办事项: {todoist_todos}")
+    
     # 创建映射：内容 -> Todoist任务ID
     todoist_todo_map = {todo["content"]: todo["id"] for todo in todoist_todos}
+    print(f"Todoist映射: {todoist_todo_map}")
     
     for todo in zectrix_todos:
         content = todo["content"]
         completed = todo["completed"]
+        print(f"处理设备待办: {content}, 完成状态: {completed}")
         
         if content in todoist_todo_map:
             # 更新Todoist任务状态
             task_id = todoist_todo_map[content]
             existing_task = next(t for t in todoist_todos if t["id"] == task_id)
+            print(f"找到Todoist任务: {task_id}, 当前状态: {existing_task['completed']}")
             if existing_task["completed"] != completed:
+                print(f"需要更新状态: {existing_task['completed']} -> {completed}")
                 update_todoist_task(task_id, completed)
+            else:
+                print("状态相同，无需更新")
+        else:
+            print(f"在Todoist中未找到待办: {content}")
 
 
 
