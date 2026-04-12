@@ -271,48 +271,57 @@ def bidirectional_sync():
     todoist_todos = get_todoist_todos()
     zectrix_todos = get_zectrix_todos()
     
-    print(f"设备待办事项: {zectrix_todos}")
-    print(f"Todoist待办事项: {todoist_todos}")
+    print(f"设备待办事项数量: {len(zectrix_todos)}")
+    for i, todo in enumerate(zectrix_todos):
+        print(f"  设备待办 {i+1}: {todo['content']} (完成: {todo['completed']}, ID: {todo['id']})")
     
-    # 创建映射
-    zectrix_todo_map = {todo["content"]: todo["id"] for todo in zectrix_todos}
-    todoist_todo_map = {todo["content"]: todo["id"] for todo in todoist_todos}
+    print(f"\nTodoist待办事项数量: {len(todoist_todos)}")
+    for i, todo in enumerate(todoist_todos):
+        print(f"  Todoist待办 {i+1}: {todo['content']} (完成: {todo['completed']}, ID: {todo['id']})")
     
-    print(f"设备待办映射: {zectrix_todo_map}")
-    print(f"Todoist映射: {todoist_todo_map}")
+    # 创建映射 - 使用内容作为键，但去除首尾空格并转换为小写以提高匹配率
+    zectrix_todo_map = {todo["content"].strip().lower(): todo for todo in zectrix_todos}
+    todoist_todo_map = {todo["content"].strip().lower(): todo for todo in todoist_todos}
     
     # 2. 同步Todoist到设备（创建新待办或更新优先级）
     print("\n2. 同步Todoist到设备")
     for todo in todoist_todos:
         content = todo["content"]
+        content_key = content.strip().lower()
         completed = todo["completed"]
         priority = todo["priority"]
         
-        if content in zectrix_todo_map:
+        if content_key in zectrix_todo_map:
             # 只更新优先级，不更新完成状态（避免覆盖设备上的完成状态）
-            todo_id = zectrix_todo_map[content]
-            existing_todo = next(t for t in zectrix_todos if t["id"] == todo_id)
+            existing_todo = zectrix_todo_map[content_key]
+            todo_id = existing_todo["id"]
             if existing_todo["priority"] != priority:
+                print(f"更新设备待办优先级: {content} (ID: {todo_id}) - {existing_todo['priority']} -> {priority}")
                 update_zectrix_todo(todo_id, priority=priority)
+            else:
+                print(f"设备待办优先级相同: {content} (ID: {todo_id})")
         else:
             # 创建新待办事项
+            print(f"在设备上创建新待办: {content} (完成: {completed}, 优先级: {priority})")
             create_zectrix_todo(content, completed, priority)
     
     # 3. 同步设备到Todoist（更新完成状态）
     print("\n3. 同步设备到Todoist")
     for todo in zectrix_todos:
         content = todo["content"]
+        content_key = content.strip().lower()
         completed = todo["completed"]
-        print(f"处理设备待办: {content}, 完成状态: {completed}")
+        print(f"处理设备待办: {content} (完成: {completed}, ID: {todo['id']})")
         
-        if content in todoist_todo_map:
+        if content_key in todoist_todo_map:
             # 更新Todoist任务状态
-            task_id = todoist_todo_map[content]
-            existing_task = next(t for t in todoist_todos if t["id"] == task_id)
-            print(f"找到Todoist任务: {task_id}, 当前状态: {existing_task['completed']}")
+            existing_task = todoist_todo_map[content_key]
+            task_id = existing_task["id"]
+            print(f"找到Todoist任务: {content} (ID: {task_id}, 当前状态: {existing_task['completed']})")
             if existing_task["completed"] != completed:
                 print(f"需要更新状态: {existing_task['completed']} -> {completed}")
-                update_todoist_task(task_id, completed)
+                result = update_todoist_task(task_id, completed)
+                print(f"更新结果: {result}")
             else:
                 print("状态相同，无需更新")
         else:
